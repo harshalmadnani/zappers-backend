@@ -51,11 +51,40 @@ Chain ID mapping (use exact chain IDs):
 - Arbitrum: 42161
 - Base: 8453
 - Katana: 747474
+- Zircuit: 48900
+- Flow EVM: 747
+- BSC: 56
+- Avalanche: 43114
+- Cronos: 25
+- Gnosis: 100
+- Unichain: 130
+- Sonic: 146
+- Manta Pacific: 169
+- Berachain: 80094
+- Blast: 81457
+- Plume: 98866
+- Mantle: 5000
+- ApeChain: 33139
+- Funki: 33979
+- Arbitrum Nova: 42170
+- Celo: 42220
+- Taiko: 167000
+- Scroll: 534352
+- Zora: 7777777
 
 Token addresses for common tokens:
 - ETH: 0x0000000000000000000000000000000000000000 (native)
 - USDC on Arbitrum: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
 - USDC on Katana: 0x203a662b0bd271a6ed5a60edfbd04bfce608fd36
+- USDC on Zircuit: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+- USDC on Flow EVM: 0xf1815bd50389c46847f0bda824ec8da914045d14
+- USDC on Base: 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913
+- USDC on Polygon: 0x3c499c542cef5e3811e1192ce70d8cc03d5c3359
+- WETH on Zircuit: 0x4200000000000000000000000000000000000006
+- WETH on Katana: 0xee7d8bcfb72bc1880d0cf19822eb0a2e6577ab62
+- WFLOW on Flow EVM: 0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e
+- RON on Katana: 0x32e17b01d0c73b2c9f0745b0b45b7a8b7f6b5e8f
+- AXS on Katana: 0x97a9107c1793bc407d6f527b77e7fff4d812bece
 
 Quote request format:
 {
@@ -145,7 +174,7 @@ The code should be a complete Vercel API route that:
 - Includes environment variable configuration
 - Has proper TypeScript types
 - Uses Relay API for cross-chain swaps with proper chain ID mapping
-- Supports multiple blockchains (Ethereum, Polygon, Base, Arbitrum, Katana, etc.)
+- Supports multiple blockchains (Ethereum, Polygon, Base, Arbitrum, Katana, Zircuit, Flow EVM, BSC, Avalanche, and 20+ other chains)
 - Implements proper error handling and transaction confirmation
 - Uses ethers.js v6 for wallet operations and transaction execution
 - Handles token decimals correctly (USDC = 6, ETH = 18)
