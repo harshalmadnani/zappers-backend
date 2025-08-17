@@ -115,8 +115,12 @@ export class BotManager extends EventEmitter {
       const targetCoin = request.targetCoin || 'SOL';
       console.log(`🎯 Target coin: ${targetCoin}`);
 
-      // Validate swap configuration
-      const validationErrors = this.relayService.validateSwapRequest(request.swapConfig);
+      // Validate swap configuration - convert to RelaySwapRequest format
+      const relaySwapRequest = {
+        ...request.swapConfig,
+        destinationBlockchain: request.swapConfig.destinationBlockchain || request.swapConfig.originBlockchain
+      };
+      const validationErrors = this.relayService.validateSwapRequest(relaySwapRequest);
       if (validationErrors.length > 0) {
         throw new Error(`Invalid swap configuration: ${validationErrors.join(', ')}`);
       }
@@ -455,7 +459,7 @@ export class BotManager extends EventEmitter {
         swapRequest = {
           ...bot.swapConfig,
           originSymbol: bot.swapConfig.destinationSymbol,
-          originBlockchain: bot.swapConfig.destinationBlockchain,
+          originBlockchain: bot.swapConfig.destinationBlockchain || bot.swapConfig.originBlockchain,
           destinationSymbol: bot.swapConfig.originSymbol,
           destinationBlockchain: bot.swapConfig.originBlockchain
         };
@@ -463,8 +467,18 @@ export class BotManager extends EventEmitter {
 
       console.log(`📋 Swap request: ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain})`);
 
-      // Execute swap with improved error handling
-      const result = await this.relayService.executeSwap(swapRequest);
+      // Check if this is a cross-chain operation
+      const isCrossChain = swapRequest.originBlockchain !== swapRequest.destinationBlockchain;
+      if (isCrossChain) {
+        console.log(`🌉 Cross-chain operation detected: ${swapRequest.originBlockchain} → ${swapRequest.destinationBlockchain}`);
+      }
+
+      // Execute swap with improved error handling - ensure destinationBlockchain is set
+      const relaySwapRequest = {
+        ...swapRequest,
+        destinationBlockchain: swapRequest.destinationBlockchain || swapRequest.originBlockchain
+      };
+      const result = await this.relayService.executeSwap(relaySwapRequest);
 
       // Update bot statistics
       bot.executionCount++;
@@ -507,9 +521,19 @@ export class BotManager extends EventEmitter {
 
     } catch (error) {
       console.error(`Trade execution error for bot ${bot.name}:`, error);
+      
+      // Check if this is a cross-chain error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isCrossChainError = errorMessage.includes('Cross-chain') || errorMessage.includes('same-chain quote');
+      
+      if (isCrossChainError) {
+        console.error(`🌉 Cross-chain operation failed for bot ${bot.name}: ${errorMessage}`);
+        console.log(`💡 Consider using same-chain operations or checking if cross-chain route is supported`);
+      }
+      
       // Set failure time to trigger cooldown period
       this.lastFailureTime.set(bot.id, new Date());
-      console.log(`🔄 Bot ${bot.name} entering ${this.RETRY_DELAY_MS / 1000}s cooldown after exception`);
+      console.log(`🔄 Bot ${bot.name} entering ${this.RETRY_DELAY_MS / 1000}s cooldown after ${isCrossChainError ? 'cross-chain' : 'execution'} failure`);
       
       await this.logExecution(
         bot.id,
@@ -518,7 +542,7 @@ export class BotManager extends EventEmitter {
         undefined,
         undefined,
         false,
-        error instanceof Error ? error.message : 'Unknown error'
+        errorMessage
       );
     }
   }
@@ -665,14 +689,18 @@ export class BotManager extends EventEmitter {
     try {
       console.log(`🚀 Executing manual swap: ${swapConfig.amount} ${swapConfig.originSymbol} → ${swapConfig.destinationSymbol}`);
       
-      // Validate the swap configuration
-      const validationErrors = this.relayService.validateSwapRequest(swapConfig);
+      // Validate the swap configuration - ensure destinationBlockchain is set
+      const relaySwapConfig = {
+        ...swapConfig,
+        destinationBlockchain: swapConfig.destinationBlockchain || swapConfig.originBlockchain
+      };
+      const validationErrors = this.relayService.validateSwapRequest(relaySwapConfig);
       if (validationErrors.length > 0) {
         throw new Error(`Invalid swap configuration: ${validationErrors.join(', ')}`);
       }
 
       // Execute the swap using the relay service
-      const result = await this.relayService.executeSwap(swapConfig);
+      const result = await this.relayService.executeSwap(relaySwapConfig);
       
       if (result.success) {
         console.log(`✅ Manual swap executed successfully`);

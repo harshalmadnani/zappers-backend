@@ -47,44 +47,127 @@ For swaps, use Relay API endpoints:
 Chain ID mapping (use exact chain IDs):
 - Ethereum: 1
 - Optimism: 10  
-- Polygon: 137
-- Arbitrum: 42161
-- Base: 8453
-- Katana: 747474
-- Zircuit: 48900
-- Flow EVM: 747
-- BSC: 56
-- Avalanche: 43114
 - Cronos: 25
+- BSC: 56
 - Gnosis: 100
 - Unichain: 130
+- Polygon: 137
 - Sonic: 146
 - Manta Pacific: 169
+- Mint: 185
+- Boba: 288
+- zkSync: 324
+- Shape: 360
+- Appchain: 466
+- World Chain: 480
+- Redstone: 690
+- Flow EVM: 747
+- HyperEVM: 999
+- Metis: 1088
+- Polygon zkEVM: 1101
+- Lisk: 1135
+- Sei: 1329
+- Hyperliquid: 1337
+- Perennial: 1424
+- Story: 1514
+- Gravity: 1625
+- Soneium: 1868
+- Swellchain: 1923
+- Sanko: 1996
+- Ronin: 2020
+- Abstract: 2741
+- Morph: 2818
+- Hychain: 2911
+- Mantle: 5000
+- Superseed: 5330
+- Cyber: 7560
+- Powerloom V2: 7869
+- Arena Z: 7897
+- B3: 8333
+- Base: 8453
+- Onchain Points: 17071
+- ApeChain: 33139
+- Funki: 33979
+- Mode: 34443
+- Arbitrum: 42161
+- Arbitrum Nova: 42170
+- Celo: 42220
+- Hemi: 43111
+- Avalanche: 43114
+- Gunz: 43419
+- Zircuit: 48900
+- Superposition: 55244
+- Ink: 57073
+- Linea: 59144
+- Bob: 60808
+- AnimeChain: 69000
+- Apex: 70700
+- Boss: 70701
 - Berachain: 80094
 - Blast: 81457
 - Plume: 98866
-- Mantle: 5000
-- ApeChain: 33139
-- Funki: 33979
-- Arbitrum Nova: 42170
-- Celo: 42220
 - Taiko: 167000
 - Scroll: 534352
+- Zero Network: 543210
+- Xai: 660279
+- Katana: 747474
+- Forma: 984122
 - Zora: 7777777
+- Bitcoin: 8253038
+- Eclipse: 9286185
+- Soon: 9286186
+- Corn: 21000000
+- Sui: 103665049
+- Degen: 666666666
+- Solana: 792703809
+- Ancient8: 888888888
+- Rari: 1380012617
 
-Token addresses for common tokens:
+Token addresses for common tokens (use native 0x000...000 for native tokens):
+
+Ethereum (1):
 - ETH: 0x0000000000000000000000000000000000000000 (native)
-- USDC on Arbitrum: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
-- USDC on Katana: 0x203a662b0bd271a6ed5a60edfbd04bfce608fd36
-- USDC on Zircuit: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
-- USDC on Flow EVM: 0xf1815bd50389c46847f0bda824ec8da914045d14
-- USDC on Base: 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913
-- USDC on Polygon: 0x3c499c542cef5e3811e1192ce70d8cc03d5c3359
-- WETH on Zircuit: 0x4200000000000000000000000000000000000006
-- WETH on Katana: 0xee7d8bcfb72bc1880d0cf19822eb0a2e6577ab62
-- WFLOW on Flow EVM: 0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e
-- RON on Katana: 0x32e17b01d0c73b2c9f0745b0b45b7a8b7f6b5e8f
-- AXS on Katana: 0x97a9107c1793bc407d6f527b77e7fff4d812bece
+- USDC: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+- WETH: 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+- WBTC: 0x2260fac5e5542a773aa44fbcfedf7c193bc2c599
+
+Arbitrum (42161):
+- ETH: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0xaf88d065e77c8cc2239327c5edb3a432268e5831
+- WETH: 0x82af49447d8a07e3bd95bd0d56f35241523fbab1
+- WBTC: 0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f
+
+Base (8453):
+- ETH: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913
+- WETH: 0x4200000000000000000000000000000000000006
+
+Polygon (137):
+- POL: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0x3c499c542cef5e3811e1192ce70d8cc03d5c3359
+- WPOL: 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270
+
+Katana (747474):
+- ETH: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0x203a662b0bd271a6ed5a60edfbd04bfce608fd36
+- WETH: 0xee7d8bcfb72bc1880d0cf19822eb0a2e6577ab62
+- RON: 0x32e17b01d0c73b2c9f0745b0b45b7a8b7f6b5e8f
+- AXS: 0x97a9107c1793bc407d6f527b77e7fff4d812bece
+
+Flow EVM (747):
+- FLOW: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0xf1815bd50389c46847f0bda824ec8da914045d14
+- WFLOW: 0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e
+
+Zircuit (48900):
+- ETH: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+- WETH: 0x4200000000000000000000000000000000000006
+
+BSC (56):
+- BNB: 0x0000000000000000000000000000000000000000 (native)
+- USDC: 0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d
+- WBNB: 0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
 
 Quote request format:
 {
@@ -189,6 +272,15 @@ Important implementation details:
 - Check user balances before attempting swaps
 - Use proper RPC endpoints for each chain
 - Handle both ERC20 tokens and native tokens correctly
+- For cross-chain operations, validate that the quote is actually cross-chain
+- If cross-chain is not supported, provide clear error messages
+- Handle fallback to same-chain operations when cross-chain fails
+
+Cross-chain operation guidelines:
+- Always validate that originChainId !== destinationChainId in the quote response
+- If both currencies are on the same chain, it's not a true cross-chain swap
+- Log clear messages about cross-chain vs same-chain operations
+- Provide helpful error messages when cross-chain routes are unavailable
 
 Make the bot intelligent and responsive to the user's trading strategy described in their prompt.`;
   }

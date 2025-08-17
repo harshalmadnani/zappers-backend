@@ -32,7 +32,7 @@ export interface SwapRequest {
   originSymbol: string;
   originBlockchain: string;
   destinationSymbol: string;
-  destinationBlockchain: string;
+  destinationBlockchain?: string; // Made optional as requested
   amount: string;
   isTest?: boolean;
   // Relay-specific optional fields

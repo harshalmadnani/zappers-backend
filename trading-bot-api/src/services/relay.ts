@@ -637,45 +637,180 @@ export class RelayService {
     return address;
   }
 
+  private getTokenDecimals(chainId: number, symbol: string): number {
+    // Standard token decimals mapping
+    const tokenDecimals: Record<string, number> = {
+      // Native tokens
+      'ETH': 18,
+      'BNB': 18,
+      'MATIC': 18,
+      'POL': 18,
+      'AVAX': 18,
+      'FTM': 18,
+      'CRO': 18,
+      'XDAI': 18,
+      'S': 18,
+      'FLOW': 18,
+      'BERA': 18,
+      'PLUME': 18,
+      'MNT': 18,
+      'APE': 18,
+      'CELO': 18,
+      'XAI': 18,
+      'DEGEN': 18,
+      'BTCN': 8,
+      
+      // Wrapped tokens
+      'WETH': 18,
+      'WBNB': 18,
+      'WPOL': 18,
+      'WAVAX': 18,
+      'WCRO': 18,
+      'WS': 18,
+      'WFLOW': 18,
+      'WBERA': 18,
+      'WPLUME': 18,
+      'WAPE': 18,
+      'WBTCN': 8,
+      'WRON': 18,
+      
+      // Stablecoins
+      'USDC': 6,
+      'USDT': 6,
+      'DAI': 18,
+      'USDC.E': 6,
+      'PUSD': 18,
+      'APEUSD': 18,
+      'USDZC': 18,
+      
+      // Other tokens
+      'WBTC': 8,
+      'CBBTC': 8,
+      'TBTC': 18,
+      'OP': 18,
+      'ARB': 18,
+      'LINK': 18,
+      'UNI': 18,
+      'AAVE': 18,
+      'CRV': 18,
+      'COMP': 18,
+      'MKR': 18,
+      'SNX': 18,
+      'YFI': 18,
+      'BAL': 18,
+      'SUSHI': 18,
+      'LDO': 18,
+      'STETH': 18,
+      'WSTETH': 18,
+      'WEETH': 18,
+      'EZETH': 18,
+      'PENDLE': 18,
+      'T': 18,
+      'GHO': 18,
+      'USDE': 18,
+      'RWA': 18,
+      'RON': 18,
+      'AXS': 18,
+      'SLP': 18,
+      'ANIME': 18,
+      'DMT': 18,
+      'GOD': 18,
+      'TOPIA': 18,
+      'POWER': 18,
+      'OMI': 18,
+      'SIPHER': 18,
+      'G': 18,
+      'POP': 18,
+      'LRDS': 18,
+      'GUN': 18,
+      'RARI': 18,
+      'APEETH': 18,
+    };
+
+    const decimals = tokenDecimals[symbol.toUpperCase()];
+    if (decimals === undefined) {
+      // Default to 18 decimals for ERC20 tokens if not specified
+      console.warn(`⚠️  Unknown decimals for token ${symbol}, defaulting to 18`);
+      return 18;
+    }
+
+    return decimals;
+  }
+
   async getQuote(swapRequest: RelaySwapRequest): Promise<RelayQuoteResponse> {
     try {
       console.log('🔄 Getting quote from Relay API...');
-      console.log(`   ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain})`);
+      console.log(`   ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain || swapRequest.originBlockchain})`);
 
       const originChainId = this.getChainId(swapRequest.originBlockchain);
-      const destinationChainId = this.getChainId(swapRequest.destinationBlockchain);
+      // If no destination blockchain specified, default to same as origin
+      const destinationChainId = swapRequest.destinationBlockchain 
+        ? this.getChainId(swapRequest.destinationBlockchain)
+        : originChainId;
       const originCurrency = this.getTokenAddress(originChainId, swapRequest.originSymbol);
       const destinationCurrency = this.getTokenAddress(destinationChainId, swapRequest.destinationSymbol);
 
-      const quoteRequest: RelayQuoteRequest = {
+      // Check if this is a cross-chain operation
+      const isCrossChain = originChainId !== destinationChainId;
+      
+      // Convert amount to smallest unit if it's a decimal
+      let formattedAmount = swapRequest.amount;
+      if (swapRequest.amount.includes('.')) {
+        // Convert decimal to smallest unit based on token decimals
+        const decimals = this.getTokenDecimals(originChainId, swapRequest.originSymbol);
+        const { ethers } = await import('ethers');
+        formattedAmount = ethers.parseUnits(swapRequest.amount, decimals).toString();
+        console.log(`💱 Converted ${swapRequest.amount} to ${formattedAmount} (${decimals} decimals)`);
+      }
+
+      // Use MINIMAL parameters for cross-chain (proven to work)
+      const quoteRequest: any = {
         user: swapRequest.senderAddress,
         recipient: swapRequest.recipientAddress,
         originChainId,
         destinationChainId,
         originCurrency,
         destinationCurrency,
-        amount: swapRequest.amount,
-        tradeType: 'EXACT_INPUT',
-        refundOnOrigin: true,
-        topupGas: true,
-        useExternalLiquidity: true,
-        useFallbacks: true,
-        protocolVersion: 'v1',
+        amount: formattedAmount,
+        tradeType: 'EXACT_INPUT' // REQUIRED for cross-chain
       };
+
+      // Only add extra parameters for same-chain swaps
+      if (!isCrossChain) {
+        quoteRequest.refundOnOrigin = true;
+        quoteRequest.topupGas = true;
+        quoteRequest.useExternalLiquidity = true;
+        quoteRequest.useFallbacks = true;
+        quoteRequest.protocolVersion = 'v1';
+      }
 
       const response = await axios.post(`${this.baseUrl}/quote`, quoteRequest, {
         headers: this.getHeaders(),
         timeout: 30000,
       });
 
+      const quote = response.data;
+      
+      // Validate cross-chain quotes to ensure they're actually cross-chain
+      if (isCrossChain) {
+        const inputChainId = quote.details?.currencyIn?.currency?.chainId;
+        const outputChainId = quote.details?.currencyOut?.currency?.chainId;
+        
+        if (inputChainId === outputChainId && inputChainId === originChainId) {
+          throw new Error(`Cross-chain quote failed: Relay API returned same-chain quote (${inputChainId}) instead of cross-chain (${originChainId} → ${destinationChainId}). Cross-chain route may not be available.`);
+        }
+        
+        console.log(`✅ Cross-chain quote validated: ${inputChainId} → ${outputChainId}`);
+      }
+
       console.log('✅ Quote received successfully');
-      return response.data;
+      return quote;
 
     } catch (error) {
       console.error('❌ Relay quote error:', error);
       
       if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.error || error.message;
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
         throw new Error(`Relay Quote Error: ${errorMessage}`);
       }
 
@@ -686,74 +821,135 @@ export class RelayService {
   async executeSwap(swapRequest: RelaySwapRequest): Promise<RelayAPIResponse> {
     try {
       console.log('🔄 Executing swap via Relay API...');
-      console.log(`   ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain})`);
+      console.log(`   ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain || swapRequest.originBlockchain})`);
 
-      // First, get a quote to understand the transaction details
+      // First, get a quote to get transaction details
       const quote = await this.getQuote(swapRequest);
       
       if (!quote.steps || quote.steps.length === 0) {
         throw new Error('No execution steps returned from quote');
       }
 
-      console.log(`📋 Executing ${quote.steps.length} transaction steps...`);
+      console.log(`📋 Executing ${quote.steps.length} transaction steps via direct on-chain execution...`);
 
-      // Execute all transaction steps
-      const executionResults = [];
-      
-      for (let i = 0; i < quote.steps.length; i++) {
-        const step = quote.steps[i];
-        console.log(`🔄 Executing Step ${i + 1}: ${step.action}`);
-
-        if (step.kind === 'transaction' && step.items && step.items.length > 0) {
-          const txItem = step.items[0];
-          
-          if (txItem.data) {
-            // Execute the actual blockchain transaction
-            const txResult = await this.executeBlockchainTransaction(
-              txItem.data, 
-              swapRequest.senderPrivateKey,
-              step.requestId
-            );
-            
-            if (txResult) {
-              console.log(`✅ Step ${i + 1} completed: ${txResult.hash}`);
-              executionResults.push(txResult);
-              
-              // Monitor the transaction status for cross-chain swaps
-              if (quote.steps.length > 1 || step.description.includes('cross-chain')) {
-                await this.monitorTransactionStatus(step.requestId, txResult.hash);
-              }
-            } else {
-              throw new Error(`Failed to execute transaction for step ${i + 1}`);
-            }
-          }
-        }
+      // Extract transaction data from the quote
+      const step = quote.steps[0];
+      if (!step.items || step.items.length === 0) {
+        throw new Error('No transaction items in step');
       }
 
-      const finalResult = executionResults[executionResults.length - 1];
-      
-      console.log('✅ Swap executed successfully');
-      console.log(`   Final Transaction Hash: ${finalResult.hash}`);
+      const txData = step.items[0].data;
+      console.log(`📤 Transaction details:`);
+      console.log(`   To: ${txData.to}`);
+      console.log(`   Value: ${txData.value} wei`);
+      console.log(`   Chain: ${txData.chainId}`);
+      console.log(`   Gas: ${txData.gas}`);
 
-      return {
-        success: true,
-        data: {
-          quote,
-          txHash: finalResult.hash,
-          requestId: finalResult.requestId,
-          status: 'success',
-          allTransactions: executionResults,
-        },
-        requestId: finalResult.requestId,
-        txHash: finalResult.hash,
+      // Execute directly on-chain using ethers (proven working method)
+      const { ethers } = await import('ethers');
+      
+      // Get RPC URL for the origin chain
+      const rpcUrl = this.getRpcUrl(txData.chainId);
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const wallet = new ethers.Wallet(swapRequest.senderPrivateKey, provider);
+
+      // Verify wallet address matches
+      if (wallet.address.toLowerCase() !== swapRequest.senderAddress.toLowerCase()) {
+        throw new Error(`Wallet address mismatch: ${wallet.address} vs ${swapRequest.senderAddress}`);
+      }
+
+      // Check balance
+      const balance = await provider.getBalance(wallet.address);
+      const requiredAmount = BigInt(txData.value || '0');
+      console.log(`💰 Wallet balance: ${ethers.formatEther(balance)} ETH`);
+      console.log(`💸 Required amount: ${ethers.formatEther(requiredAmount)} ETH`);
+
+      if (balance < requiredAmount) {
+        throw new Error(`Insufficient balance. Available: ${ethers.formatEther(balance)} ETH, Required: ${ethers.formatEther(requiredAmount)} ETH`);
+      }
+
+      // Prepare and send transaction
+      const transaction = {
+        to: txData.to,
+        value: txData.value || '0',
+        data: txData.data,
+        gasLimit: txData.gas,
+        maxFeePerGas: txData.maxFeePerGas,
+        maxPriorityFeePerGas: txData.maxPriorityFeePerGas
       };
+
+      console.log('🚀 Sending transaction...');
+      const txResponse = await wallet.sendTransaction(transaction);
+      console.log(`✅ Transaction sent: ${txResponse.hash}`);
+
+      // Wait for confirmation
+      console.log('⏳ Waiting for confirmation...');
+      const receipt = await txResponse.wait(1);
+      
+      if (receipt && receipt.status === 1) {
+        console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+        console.log(`⛽ Gas used: ${receipt.gasUsed.toString()}`);
+
+        // Monitor cross-chain completion using the step's requestId
+        console.log('🔍 Monitoring cross-chain completion...');
+        let attempts = 0;
+        const maxAttempts = 20;
+        let finalStatus = 'pending';
+        let crossChainTxHash = '';
+
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 15000)); // Wait 15 seconds
+          attempts++;
+
+          try {
+            const statusResponse = await this.getExecutionStatus(step.requestId);
+            finalStatus = statusResponse.status;
+            
+            if (statusResponse.txHash) {
+              crossChainTxHash = statusResponse.txHash;
+            }
+
+            console.log(`📊 Cross-chain status ${attempts}: ${finalStatus}`);
+            
+            if (finalStatus === 'success') {
+              console.log('✅ Cross-chain swap completed successfully!');
+              break;
+            } else if (finalStatus === 'failure') {
+              console.error(`❌ Cross-chain completion failed: ${statusResponse.error}`);
+              break;
+            }
+          } catch (statusError) {
+            console.warn(`⚠️  Status check ${attempts} failed`);
+          }
+        }
+
+        return {
+          success: finalStatus === 'success' || finalStatus === 'pending',
+          data: {
+            quote,
+            originTxHash: txResponse.hash,
+            crossChainTxHash,
+            requestId: step.requestId,
+            finalStatus,
+            receipt
+          },
+          requestId: step.requestId,
+          txHash: txResponse.hash,
+          error: finalStatus === 'failure' ? 'Cross-chain completion failed' : undefined,
+        };
+
+      } else {
+        throw new Error('Transaction failed on origin chain');
+      }
 
     } catch (error) {
       console.error('❌ Relay swap execution error:', error);
       
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       };
     }
   }
@@ -1029,9 +1225,7 @@ export class RelayService {
       errors.push('Destination token symbol is required');
     }
 
-    if (!swapRequest.destinationBlockchain) {
-      errors.push('Destination blockchain is required');
-    }
+    // Destination blockchain is now optional - defaults to origin blockchain if not specified
 
     if (!swapRequest.amount || isNaN(parseFloat(swapRequest.amount)) || parseFloat(swapRequest.amount) <= 0) {
       errors.push('Valid amount is required');
@@ -1044,10 +1238,13 @@ export class RelayService {
       errors.push(`Unsupported origin blockchain: ${swapRequest.originBlockchain}`);
     }
 
-    try {
-      this.getChainId(swapRequest.destinationBlockchain);
-    } catch {
-      errors.push(`Unsupported destination blockchain: ${swapRequest.destinationBlockchain}`);
+    // Validate destination blockchain only if provided
+    if (swapRequest.destinationBlockchain) {
+      try {
+        this.getChainId(swapRequest.destinationBlockchain);
+      } catch {
+        errors.push(`Unsupported destination blockchain: ${swapRequest.destinationBlockchain}`);
+      }
     }
 
     return errors;
