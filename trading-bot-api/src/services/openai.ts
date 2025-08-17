@@ -40,9 +40,34 @@ Use Hyperliquid WebSocket API (wss://api.hyperliquid.xyz/ws) with this subscript
 }
 
 For swaps, use Relay API endpoints:
-- POST /quote - Get swap quote
-- POST /execute - Execute gasless transaction
-- GET /intents/status - Check execution status
+- POST /quote - Get swap quote with proper chain IDs and token addresses
+- Execute transactions using ethers.js with the returned transaction data
+- GET /intents/status - Check cross-chain execution status
+
+Chain ID mapping (use exact chain IDs):
+- Ethereum: 1
+- Optimism: 10  
+- Polygon: 137
+- Arbitrum: 42161
+- Base: 8453
+- Katana: 747474
+
+Token addresses for common tokens:
+- ETH: 0x0000000000000000000000000000000000000000 (native)
+- USDC on Arbitrum: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
+- USDC on Katana: 0x203a662b0bd271a6ed5a60edfbd04bfce608fd36
+
+Quote request format:
+{
+  "user": "0x...",
+  "recipient": "0x...", 
+  "originChainId": 42161,
+  "destinationChainId": 747474,
+  "originCurrency": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  "destinationCurrency": "0x0000000000000000000000000000000000000000",
+  "amount": "1000000", // Amount in smallest unit (6 decimals for USDC)
+  "tradeType": "EXACT_INPUT"
+}
 
 Return your response as a JSON object with:
 - code: Complete TypeScript code for a Vercel API route
@@ -120,7 +145,21 @@ The code should be a complete Vercel API route that:
 - Includes environment variable configuration
 - Has proper TypeScript types
 - Uses Relay API for cross-chain swaps with proper chain ID mapping
-- Supports multiple blockchains (Ethereum, Polygon, Base, Arbitrum, etc.)
+- Supports multiple blockchains (Ethereum, Polygon, Base, Arbitrum, Katana, etc.)
+- Implements proper error handling and transaction confirmation
+- Uses ethers.js v6 for wallet operations and transaction execution
+- Handles token decimals correctly (USDC = 6, ETH = 18)
+- Includes balance checking before executing swaps
+- Implements retry logic for failed transactions
+- Logs all activities with timestamps
+
+Important implementation details:
+- Use ethers.parseUnits() for converting amounts to wei/smallest units
+- Handle chainId from quote response steps for transaction execution
+- Wait for transaction confirmation before proceeding
+- Check user balances before attempting swaps
+- Use proper RPC endpoints for each chain
+- Handle both ERC20 tokens and native tokens correctly
 
 Make the bot intelligent and responsive to the user's trading strategy described in their prompt.`;
   }
@@ -170,6 +209,65 @@ Make the bot intelligent and responsive to the user's trading strategy described
       type,
       parameters: { ...parameters, ...strategy?.parameters }
     };
+  }
+
+  async generateManualSwapCode(swapRequest: {
+    fromToken: string;
+    fromChain: string;
+    fromChainId: number;
+    fromAmount: string;
+    toToken: string;
+    toChain: string;
+    toChainId: number;
+    privateKey: string;
+    senderAddress: string;
+  }): Promise<string> {
+    const prompt = `Generate a complete manual swap script for cross-chain token swap:
+
+From: ${swapRequest.fromAmount} ${swapRequest.fromToken} on ${swapRequest.fromChain} (Chain ID: ${swapRequest.fromChainId})
+To: ${swapRequest.toToken} on ${swapRequest.toChain} (Chain ID: ${swapRequest.toChainId})
+Wallet: ${swapRequest.senderAddress}
+
+Requirements:
+1. Use Relay API (https://api.relay.link) for cross-chain swaps
+2. Use ethers.js v6 for blockchain interactions
+3. Include proper error handling and logging
+4. Check balances before executing
+5. Wait for transaction confirmations
+6. Handle both ERC20 and native tokens
+7. Use proper token decimals and amounts
+8. Include retry logic for failed transactions
+
+The script should be a complete Node.js script that can be run directly.`;
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: "o3-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert blockchain developer. Generate complete, production-ready JavaScript/TypeScript code for cross-chain token swaps using modern tools and best practices."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI for manual swap generation');
+      }
+
+      // Extract code from markdown if present
+      const codeMatch = response.match(/```(?:javascript|js|typescript|ts)?\n([\s\S]*?)\n```/);
+      return codeMatch ? codeMatch[1] : response;
+
+    } catch (error) {
+      console.error('Manual swap generation error:', error);
+      throw new Error(`Failed to generate manual swap code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async optimizeStrategy(

@@ -461,7 +461,9 @@ export class BotManager extends EventEmitter {
         };
       }
 
-      // Execute swap
+      console.log(`📋 Swap request: ${swapRequest.amount} ${swapRequest.originSymbol} (${swapRequest.originBlockchain}) → ${swapRequest.destinationSymbol} (${swapRequest.destinationBlockchain})`);
+
+      // Execute swap with improved error handling
       const result = await this.relayService.executeSwap(swapRequest);
 
       // Update bot statistics
@@ -471,7 +473,7 @@ export class BotManager extends EventEmitter {
       // Persist updated bot state
       await this.storageService.saveBot(bot);
 
-      // Log execution
+      // Log execution with more details
       await this.logExecution(
         bot.id,
         action,
@@ -484,6 +486,10 @@ export class BotManager extends EventEmitter {
 
       if (result.success) {
         console.log(`✅ ${action} trade executed successfully for bot: ${bot.name}`);
+        if (result.data?.txHash || result.txHash) {
+          console.log(`📤 Transaction hash: ${result.data?.txHash || result.txHash}`);
+        }
+        
         // Clear any previous failure time on successful trade
         this.lastFailureTime.delete(bot.id);
         this.emit('tradeExecuted', {
@@ -626,6 +632,61 @@ export class BotManager extends EventEmitter {
       this.emit('botOptimized', bot);
     } catch (error) {
       console.error(`Failed to optimize bot ${bot.name}:`, error);
+      throw error;
+    }
+  }
+
+  async generateManualSwap(swapRequest: {
+    fromToken: string;
+    fromChain: string;
+    fromChainId: number;
+    fromAmount: string;
+    toToken: string;
+    toChain: string;
+    toChainId: number;
+    privateKey: string;
+    senderAddress: string;
+  }): Promise<string> {
+    try {
+      console.log(`🔧 Generating manual swap code for ${swapRequest.fromAmount} ${swapRequest.fromToken} → ${swapRequest.toToken}`);
+      
+      const swapCode = await this.openaiService.generateManualSwapCode(swapRequest);
+      
+      console.log(`✅ Manual swap code generated successfully`);
+      return swapCode;
+      
+    } catch (error) {
+      console.error('❌ Failed to generate manual swap code:', error);
+      throw error;
+    }
+  }
+
+  async executeManualSwap(swapConfig: SwapRequest): Promise<any> {
+    try {
+      console.log(`🚀 Executing manual swap: ${swapConfig.amount} ${swapConfig.originSymbol} → ${swapConfig.destinationSymbol}`);
+      
+      // Validate the swap configuration
+      const validationErrors = this.relayService.validateSwapRequest(swapConfig);
+      if (validationErrors.length > 0) {
+        throw new Error(`Invalid swap configuration: ${validationErrors.join(', ')}`);
+      }
+
+      // Execute the swap using the relay service
+      const result = await this.relayService.executeSwap(swapConfig);
+      
+      if (result.success) {
+        console.log(`✅ Manual swap executed successfully`);
+        if (result.data?.txHash || result.txHash) {
+          console.log(`📤 Transaction hash: ${result.data?.txHash || result.txHash}`);
+        }
+      } else {
+        console.error(`❌ Manual swap failed: ${result.error}`);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Manual swap execution error:', error);
       throw error;
     }
   }
