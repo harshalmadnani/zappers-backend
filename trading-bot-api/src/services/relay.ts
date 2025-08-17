@@ -843,7 +843,6 @@ export class RelayService {
       console.log(`   To: ${txData.to}`);
       console.log(`   Value: ${txData.value} wei`);
       console.log(`   Chain: ${txData.chainId}`);
-      console.log(`   Gas: ${txData.gas}`);
 
       // Execute directly on-chain using ethers (proven working method)
       const { ethers } = await import('ethers');
@@ -869,14 +868,23 @@ export class RelayService {
       }
 
       // Prepare and send transaction
-      const transaction = {
+      const transaction: any = {
         to: txData.to,
         value: txData.value || '0',
         data: txData.data,
-        gasLimit: txData.gas,
         maxFeePerGas: txData.maxFeePerGas,
         maxPriorityFeePerGas: txData.maxPriorityFeePerGas
       };
+
+      // Estimate gas limit
+      try {
+        const estimatedGas = await provider.estimateGas(transaction);
+        transaction.gasLimit = estimatedGas;
+        console.log(`⛽ Estimated gas: ${estimatedGas.toString()}`);
+      } catch (gasError) {
+        console.warn('⚠️  Gas estimation failed, using default');
+        transaction.gasLimit = '100000'; // Safe default
+      }
 
       console.log('🚀 Sending transaction...');
       const txResponse = await wallet.sendTransaction(transaction);

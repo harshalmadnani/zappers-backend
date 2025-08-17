@@ -101,4 +101,13 @@ data/bots.json
 data/bots.json.backup
 test-bot-v*.json
 **/private-keys/**
-**/*private-key*
+**/*private-key*# Development and test files
+*-test-*.ts
+*-debug-*.ts
+execute-*.ts
+test-*.ts
+working-*.ts
+focus-*.ts
+create-*.ts
+deploy-*.ts
+data/execution-logs.json
