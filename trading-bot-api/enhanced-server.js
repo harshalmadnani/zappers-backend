@@ -226,8 +226,8 @@ app.post('/api/bots', async (req, res) => {
         swapResult = await testSwap();
         
         // If swap fails due to insufficient balance, still allow bot creation
-        if (!swapResult.success && swapResult.error) {
-          const errorMsg = swapResult.error.toLowerCase();
+        if ((!swapResult.success && swapResult.error) || (swapResult.steps && swapResult.steps.length > 0)) {
+          const errorMsg = swapResult.error ? swapResult.error.toLowerCase() : '';
           if (errorMsg.includes('exceeds balance') || 
               errorMsg.includes('insufficient') || 
               errorMsg.includes('not enough') ||
@@ -235,7 +235,8 @@ app.post('/api/bots', async (req, res) => {
               errorMsg.includes('userbalance') ||
               (swapResult.details && swapResult.details.details && swapResult.details.details.userBalance === "0") ||
               (swapResult.details && swapResult.details.details && swapResult.details.details.userBalance === 0) ||
-              (swapResult.details && swapResult.details.steps && swapResult.details.steps.length > 0)) {
+              (swapResult.details && swapResult.details.steps && swapResult.details.steps.length > 0) ||
+              (swapResult.steps && swapResult.steps.length > 0)) {
             console.log('⚠️ Swap test failed due to balance check - allowing bot creation anyway');
             console.log('💡 Bot has real transaction data and is ready for live trading');
             swapResult = {
