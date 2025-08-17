@@ -39,6 +39,32 @@ Use Hyperliquid WebSocket API (wss://api.hyperliquid.xyz/ws) with this subscript
   }
 }
 
+For wallet balances and historical data, use The Graph Token API (https://token-api.thegraph.com) with JWT authentication:
+- GET /balances/evm/{address} - Get token balances for a wallet
+- GET /tokens/{chainId}/{tokenAddress}/prices - Get historical prices
+- GET /tokens/{chainId}/{tokenAddress} - Get token metadata
+- GET /transfers/{address} - Get token transfer history
+
+Use the provided JWT token for The Graph API authentication.
+
+Example Graph API usage:
+\`\`\`typescript
+const graphHeaders = {
+  'Authorization': 'Bearer YOUR_JWT_TOKEN_HERE',
+  'Accept': 'application/json'
+};
+
+// Get wallet balances
+const balancesResponse = await fetch(\`https://token-api.thegraph.com/balances/evm/$\{walletAddress\}\`, {
+  headers: graphHeaders
+});
+
+// The response format includes:
+// - data: array of token balances with contract, amount, value, name, symbol, decimals
+// - pagination: for handling large result sets
+// - statistics: query performance metrics
+\`\`\`
+
 For swaps, use Relay API endpoints:
 - POST /quote - Get swap quote with proper chain IDs and token addresses
 - Execute transactions using ethers.js with the returned transaction data
@@ -249,6 +275,8 @@ Required Features:
 5. Include proper error handling and logging
 6. Store execution history
 7. Support price thresholds, intervals, and custom conditions
+8. Use The Graph Token API for wallet balance checks and historical price analysis
+9. Implement portfolio value tracking and token metadata fetching
 
 The code should be a complete Vercel API route that:
 - Exports a default handler function
@@ -281,6 +309,16 @@ Cross-chain operation guidelines:
 - If both currencies are on the same chain, it's not a true cross-chain swap
 - Log clear messages about cross-chain vs same-chain operations
 - Provide helpful error messages when cross-chain routes are unavailable
+
+The Graph API integration guidelines:
+- Use The Graph Token API ONLY if the user explicitly requests graph data 
+- Check wallet balances before executing swaps to ensure sufficient funds
+- Use historical price data to improve trading strategy decisions
+- Fetch token metadata to validate token addresses and get proper decimals
+- Implement portfolio tracking for multi-token strategies
+- Use rate limiting (100ms between requests) to avoid API limits
+- Handle API errors gracefully with fallback mechanisms
+- Cache frequently accessed data to reduce API calls
 
 Make the bot intelligent and responsive to the user's trading strategy described in their prompt.`;
   }

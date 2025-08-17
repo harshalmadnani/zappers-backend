@@ -7,6 +7,7 @@ import { RelayService } from './relay';
 import { VercelDeployService } from './vercel-deploy';
 import { StorageService } from './storage';
 import { SupabaseService, AgentRecord } from './supabase';
+import { GraphService } from './graph';
 
 export class BotManager extends EventEmitter {
   private bots: Map<string, TradingBot> = new Map();
@@ -20,6 +21,7 @@ export class BotManager extends EventEmitter {
   private vercelService: VercelDeployService;
   private storageService: StorageService;
   private supabaseService: SupabaseService;
+  private graphService: GraphService | null = null; // Optional Graph API service
   private targetCoin: string;
   private isTestnet: boolean;
   private botToAgentMap: Map<string, number> = new Map(); // Map bot ID to Supabase agent ID
@@ -32,7 +34,8 @@ export class BotManager extends EventEmitter {
     vercelToken: string,
     relayApiKey?: string,
     targetCoin: string = 'SOL',
-    isTestnet: boolean = false
+    isTestnet: boolean = false,
+    graphApiKey?: string
   ) {
     super();
     this.openaiService = new OpenAIService(openaiApiKey);
@@ -40,6 +43,13 @@ export class BotManager extends EventEmitter {
     this.vercelService = new VercelDeployService(vercelToken);
     this.storageService = new StorageService();
     this.supabaseService = new SupabaseService();
+    
+    // Initialize Graph service only if API key is provided
+    if (graphApiKey) {
+      this.graphService = new GraphService(graphApiKey);
+      console.log('📊 Graph API service initialized');
+    }
+    
     this.targetCoin = targetCoin;
     this.isTestnet = isTestnet;
     
@@ -717,5 +727,130 @@ export class BotManager extends EventEmitter {
       console.error('❌ Manual swap execution error:', error);
       throw error;
     }
+  }
+
+  // Graph API helper methods (only available if Graph service is initialized)
+  
+  /**
+   * Get wallet balances using The Graph API
+   */
+  async getWalletBalances(walletAddress: string, chainId?: number) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.getWalletBalances(walletAddress, chainId);
+  }
+
+  /**
+   * Get historical prices for a token using The Graph API
+   */
+  async getHistoricalPrices(tokenAddress: string, chainId: number, timeframe: string = '1h', limit: number = 100) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.getHistoricalPrices(tokenAddress, chainId, timeframe, limit);
+  }
+
+  /**
+   * Get token information using The Graph API
+   */
+  async getTokenInfo(tokenAddress: string, chainId: number) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.getTokenInfo(tokenAddress, chainId);
+  }
+
+  /**
+   * Get portfolio value for a wallet using The Graph API
+   */
+  async getPortfolioValue(walletAddress: string, chainIds?: number[]) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.getPortfolioValue(walletAddress, chainIds);
+  }
+
+  /**
+   * Search for tokens using The Graph API
+   */
+  async searchTokens(query: string, chainId?: number, limit: number = 20) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.searchTokens(query, chainId, limit);
+  }
+
+  /**
+   * Get token transfers for a wallet using The Graph API
+   */
+  async getTokenTransfers(walletAddress: string, chainId?: number, tokenAddress?: string, limit: number = 50) {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return await this.graphService.getTokenTransfers(walletAddress, chainId, tokenAddress, limit);
+  }
+
+  /**
+   * Check if Graph API service is available
+   */
+  isGraphAPIAvailable(): boolean {
+    return this.graphService !== null;
+  }
+
+  /**
+   * Get supported chains for Graph API
+   */
+  getSupportedChains() {
+    if (!this.graphService) {
+      throw new Error('Graph API service not initialized. Provide graphApiKey in constructor.');
+    }
+    
+    return this.graphService.getSupportedChains();
+  }
+
+  /**
+   * Enhanced bot creation with wallet balance validation (if Graph API is available)
+   */
+  async createBotWithBalanceCheck(request: BotCreationRequest): Promise<TradingBot> {
+    // If Graph API is available and user provided wallet address, check balances
+    if (this.graphService && request.swapConfig.senderAddress) {
+      try {
+        console.log(`💰 Checking wallet balances for ${request.swapConfig.senderAddress}...`);
+        const balances = await this.getWalletBalances(request.swapConfig.senderAddress);
+        
+        // Log portfolio summary
+        const totalValue = balances.reduce((sum, balance) => sum + (balance.valueUSD || 0), 0);
+        console.log(`📊 Portfolio value: $${totalValue.toFixed(2)} across ${balances.length} tokens`);
+        
+        // Check if user has sufficient balance for the swap
+        const originToken = balances.find(b => 
+          b.token.symbol.toLowerCase() === request.swapConfig.originSymbol.toLowerCase()
+        );
+        
+        if (originToken) {
+          const requestedAmount = parseFloat(request.swapConfig.amount);
+          const availableAmount = parseFloat(originToken.formattedAmount);
+          
+          if (requestedAmount > availableAmount) {
+            console.warn(`⚠️  Insufficient balance: Requested ${requestedAmount} ${request.swapConfig.originSymbol}, available ${availableAmount}`);
+          } else {
+            console.log(`✅ Sufficient balance: ${availableAmount} ${request.swapConfig.originSymbol} available`);
+          }
+        }
+        
+      } catch (error) {
+        console.warn(`⚠️  Could not check wallet balances: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    
+    // Create bot normally
+    return await this.createBot(request);
   }
 }

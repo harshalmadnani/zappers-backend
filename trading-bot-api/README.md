@@ -1,526 +1,338 @@
-# AI Trading Bot API
+# Trading Bot API Backend
 
-An AI-powered trading bot platform that uses OpenAI o3-mini to generate custom trading bots, monitors real-time price data via Hyperliquid WebSocket, executes trades through NEAR Intents, and deploys bots to Vercel.
+A sophisticated trading bot platform that generates AI-powered trading strategies, executes cross-chain swaps, and provides real-time market data analysis.
 
-## 🎯 What It Does
+## 🏗️ Architecture Overview
 
-The Trading Bot API is an **AI-powered automated trading platform** that creates, deploys, and manages custom trading bots across multiple blockchains. It combines cutting-edge technologies to provide a complete trading automation solution:
+The backend consists of several interconnected services that work together to create, deploy, and manage intelligent trading bots:
 
-### Core Functionality:
-1. **AI Bot Generation** - Uses OpenAI o3-mini to generate custom trading bot code from natural language prompts
-2. **Real-time Market Monitoring** - Connects to Hyperliquid WebSocket for live price data
-3. **Cross-chain Trading** - Executes swaps via NEAR Intents API across multiple blockchains  
-4. **Serverless Deployment** - Automatically deploys generated bots to Vercel as serverless functions
-5. **Strategy Management** - Supports various trading strategies (price thresholds, intervals, ranges, custom logic)
-6. **Performance Tracking** - Logs all trades and provides optimization suggestions
-
-## 🏗️ Technical Architecture
-
-The system follows a microservices architecture with the following key components:
-
-### Entry Points:
-- **`src/index.ts`** - Main TypeScript server with full bot management capabilities
-- **`enhanced-server.js`** - Enhanced JavaScript version with in-memory bot storage
-- **`simple-server.js`** - Minimal JavaScript version for basic testing
-
-### Core Services:
-
-#### 1. BotManager (`src/services/bot-manager.ts`)
-- Central orchestrator managing the entire bot lifecycle
-- Handles bot creation, activation, deactivation, and deletion
-- Manages WebSocket connections and price monitoring
-- Evaluates trading strategies and executes trades
-- Implements retry logic with cooldown periods after failures
-
-#### 2. OpenAI Service (`src/services/openai.ts`)
-- Generates trading bot code using OpenAI o3-mini model
-- Converts natural language prompts into executable TypeScript code
-- Extracts trading strategies from user descriptions
-- Optimizes strategies based on performance data
-
-#### 3. Hyperliquid WebSocket Service (`src/services/hyperliquid.ts`)
-- Connects to Hyperliquid for real-time trade data
-- Handles reconnection logic and subscription management
-- Supports both mainnet and testnet environments
-- Processes trade messages and emits price updates
-
-#### 4. NEAR Intents Service (`src/services/near-intents.ts`)
-- Executes cross-chain swaps via NEAR Intents API
-- Validates swap configurations
-- Handles API communication with proper error handling
-- Supports multiple blockchains (BASE, ARB, ETH, OP, POL, BSC, AVAX)
-
-#### 5. Vercel Deploy Service (`src/services/vercel-deploy.ts`)
-- Automatically deploys generated bots to Vercel
-- Creates serverless functions with environment variables
-- Manages deployment lifecycle (create, status, delete)
-- Validates Vercel API tokens
-
-#### 6. Storage Service (`src/services/storage.ts`)
-- Persists bot configurations and execution logs to JSON files
-- Handles data serialization/deserialization
-- Manages bot state persistence across server restarts
-
-## 🔄 Complete Data Flow
-
-### 1. Bot Creation Process:
 ```
-User Request → API Route → BotManager.createBot() → OpenAI Code Generation → Vercel Deployment → Bot Storage
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   OpenAI API    │    │  Hyperliquid    │    │   Relay API     │
+│   (Strategy)    │    │  (Price Data)   │    │ (Cross-chain)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Bot Manager (Core)                           │
+├─────────────────────────────────────────────────────────────────┤
+│  • Bot Creation & Management    • Strategy Execution            │
+│  • WebSocket Management         • Cross-chain Swaps             │
+│  • Performance Tracking         • Error Handling & Retry       │
+└─────────────────────────────────────────────────────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Vercel API    │    │   Supabase      │    │  Graph Token    │
+│  (Deployment)   │    │   (Storage)     │    │     API         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-1. User sends a POST request with bot name, prompt, and swap configuration
-2. `BotManager` validates the swap configuration via NEAR Intents
-3. `OpenAI Service` generates custom trading code based on the user prompt
-4. `Vercel Deploy Service` packages and deploys the bot as a serverless function
-5. Bot configuration is stored locally via `Storage Service`
+## 🚀 Core Features
 
-### 2. Bot Activation & Trading:
+### 1. AI-Powered Bot Generation
+- **Natural Language Processing**: Users describe trading strategies in plain English
+- **Code Generation**: OpenAI generates complete, production-ready TypeScript code
+- **Strategy Types**: Price thresholds, ranges, intervals, and custom logic
+- **Multi-chain Support**: Works across 25+ blockchain networks
+
+### 2. Real-time Market Data
+- **Hyperliquid Integration**: Live price feeds via WebSocket connections
+- **Multi-coin Monitoring**: Track multiple assets simultaneously
+- **Historical Analysis**: Price history storage and trend analysis
+- **Market Depth**: Real-time order book data
+
+### 3. Cross-chain Swap Execution
+- **Relay Protocol**: Seamless cross-chain token swaps
+- **25+ Chains Supported**: Ethereum, Polygon, Base, Arbitrum, and more
+- **Smart Routing**: Optimal paths for cross-chain transactions
+- **Transaction Monitoring**: Real-time status tracking and confirmations
+
+### 4. Automated Deployment
+- **Vercel Integration**: Bots deployed as serverless functions
+- **Environment Management**: Automatic configuration of API keys and settings
+- **Scaling**: Auto-scaling based on trading activity
+- **Monitoring**: Built-in logging and performance metrics
+
+### 5. Portfolio & Balance Management
+- **Wallet Tracking**: Real-time balance monitoring across chains
+- **Portfolio Analytics**: Total value calculation and performance metrics
+- **Token Metadata**: Comprehensive token information and validation
+- **Transaction History**: Complete audit trail of all activities
+
+## 🔄 Backend Flow
+
+### 1. Bot Creation Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant BotManager
+    participant OpenAI
+    participant VercelService
+    participant Supabase
+
+    User->>BotManager: Create Bot Request
+    BotManager->>OpenAI: Generate Trading Code
+    OpenAI-->>BotManager: Generated Bot Code
+    BotManager->>VercelService: Deploy to Vercel
+    VercelService-->>BotManager: Deployment URL
+    BotManager->>Supabase: Store Bot Data
+    BotManager-->>User: Bot Created Successfully
 ```
-Bot Activation → WebSocket Connection → Price Monitoring → Strategy Evaluation → Trade Execution → Logging
+
+### 2. Trading Execution Flow
+```mermaid
+sequenceDiagram
+    participant Bot
+    participant Hyperliquid
+    participant RelayAPI
+    participant Blockchain
+
+    Bot->>Hyperliquid: Connect WebSocket
+    Hyperliquid-->>Bot: Price Updates
+    Bot->>Bot: Evaluate Strategy
+    Bot->>RelayAPI: Request Swap Quote
+    RelayAPI-->>Bot: Quote Response
+    Bot->>RelayAPI: Execute Swap
+    RelayAPI->>Blockchain: Submit Transaction
+    Blockchain-->>Bot: Transaction Confirmed
 ```
 
-1. When activated, bot establishes Hyperliquid WebSocket connection
-2. Real-time trade data triggers price update events
-3. `BotManager` evaluates trading conditions based on bot's strategy
-4. If conditions are met, executes swap via NEAR Intents API
-5. All actions are logged with success/failure status and cooldown management
-
-### 3. Strategy Types Supported:
-
-#### Price Threshold Strategy:
-```typescript
-if (currentPrice <= buyThreshold) execute('buy')
-if (currentPrice >= sellThreshold) execute('sell')
+### 3. Data Flow Architecture
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Request   │────▶│ Validation  │────▶│ Processing  │
+└─────────────┘     └─────────────┘     └─────────────┘
+                                               │
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Response   │◀────│   Storage   │◀────│ Execution   │
+└─────────────┘     └─────────────┘     └─────────────┘
 ```
 
-#### Price Range Strategy:
-```typescript
-if (currentPrice <= minPrice) execute('buy')
-if (currentPrice >= maxPrice) execute('sell')
+## 📁 Project Structure
+
+```
+trading-bot-api/
+├── src/
+│   ├── routes/
+│   │   └── bots.ts              # API endpoints for bot management
+│   ├── services/
+│   │   ├── bot-manager.ts       # Core bot management logic
+│   │   ├── openai.ts           # AI strategy generation
+│   │   ├── hyperliquid.ts      # Real-time price data
+│   │   ├── relay.ts            # Cross-chain swap execution
+│   │   ├── vercel-deploy.ts    # Serverless deployment
+│   │   ├── supabase.ts         # Database operations
+│   │   ├── graph.ts            # Portfolio & balance tracking
+│   │   └── storage.ts          # Local data management
+│   ├── types/
+│   │   └── index.ts            # TypeScript type definitions
+│   └── utils/                  # Utility functions
+├── data/
+│   └── bots-template.json      # Bot configuration templates
+├── package.json                # Dependencies and scripts
+├── tsconfig.json              # TypeScript configuration
+├── vercel.json                # Deployment configuration
+└── README.md                  # This file
 ```
 
-#### Interval Strategy:
-```typescript
-if (timeSinceLastExecution >= interval) execute('buy')
-```
+## 🛠️ Service Breakdown
 
-#### Custom Strategy:
-Uses AI to implement complex logic based on user prompts
+### BotManager (Core Service)
+- **Bot Lifecycle**: Creation, activation, deactivation, deletion
+- **Strategy Execution**: Real-time monitoring and trade execution
+- **Performance Tracking**: Success rates, execution logs, analytics
+- **Error Handling**: Retry logic, failure recovery, alerting
 
-## 🛠️ Configuration & Environment
+### OpenAI Service
+- **Code Generation**: Creates complete trading bot implementations
+- **Strategy Optimization**: Analyzes performance and suggests improvements
+- **Natural Language Processing**: Converts user prompts to executable code
+- **Template Management**: Maintains reusable code patterns
 
-### Required Environment Variables:
-```env
-OPENAI_API_KEY=sk-proj-your-openai-key-here
-VERCEL_TOKEN=your-vercel-token-here
-RELAY_API_KEY=your-relay-api-key-here  # Optional
-IS_TESTNET=false
-PORT=3000
-```
+### Hyperliquid Service
+- **WebSocket Management**: Maintains persistent connections for real-time data
+- **Price Monitoring**: Tracks multiple assets simultaneously
+- **Data Normalization**: Converts raw market data to standardized format
+- **Connection Recovery**: Automatic reconnection and error handling
 
-## 🚀 Deployment Architecture
+### Relay Service
+- **Cross-chain Routing**: Finds optimal paths for token swaps
+- **Quote Management**: Real-time pricing for cross-chain transactions
+- **Transaction Execution**: Handles complex multi-step swaps
+- **Status Tracking**: Monitors transaction progress across chains
 
-### Main API Server:
-- Runs on Node.js/Express
-- Can be deployed to Vercel, Render, or any cloud platform
-- Handles bot management and orchestration
+### Vercel Deploy Service
+- **Serverless Deployment**: Deploys bots as Vercel functions
+- **Environment Configuration**: Manages API keys and settings
+- **Code Optimization**: Bundles and optimizes bot code for deployment
+- **Scaling Management**: Handles auto-scaling based on usage
 
-### Individual Bot Deployments:
-- Each bot becomes an independent Vercel serverless function
-- Contains generated trading logic specific to user requirements
-- Monitors prices and executes trades autonomously
-- Can be controlled via main API
+### Graph Service
+- **Portfolio Tracking**: Real-time balance monitoring across chains
+- **Token Analytics**: Comprehensive token metadata and metrics
+- **Transaction History**: Complete audit trail of wallet activities
+- **Multi-chain Support**: Works across all major EVM networks
 
-## 🔒 Security & Error Handling
+## 🔧 Configuration
 
-### Security Features:
-- API key validation for all external services
-- Private key validation for blockchain transactions
-- Test mode support for safe development
-- Input validation and sanitization
-
-### Error Handling:
-- Comprehensive try-catch blocks throughout
-- Automatic retry logic with exponential backoff
-- Cooldown periods after failed trades
-- Detailed logging for debugging
-
-### Monitoring:
-- Real-time bot status tracking
-- Trade execution logging
-- Performance metrics collection
-- Health checks for all services
-
-## Features
-
-- 🤖 **AI Bot Generation**: Uses OpenAI o3-mini to generate custom trading bot code based on user prompts
-- 📊 **Real-time Price Monitoring**: Connects to Hyperliquid WebSocket for live token price data
-- 🔄 **Cross-chain Trading**: Executes swaps via NEAR Intents API across multiple blockchains
-- ☁️ **Auto-deployment**: Automatically deploys generated bots to Vercel as serverless functions
-- 🎯 **Smart Strategies**: Supports price thresholds, ranges, intervals, and custom trading logic
-- 📈 **Performance Tracking**: Logs all trades and provides optimization suggestions
-
-## Quick Start
-
-### 1. Environment Setup
-
+### Environment Variables
 ```bash
-# Clone and setup
-git clone <repo>
-cd trading-bot-api
+# Core API Keys
+OPENAI_API_KEY=your_openai_api_key
+VERCEL_TOKEN=your_vercel_token
+RELAY_API_KEY=your_relay_api_key
+GRAPH_API_KEY=your_graph_jwt_token
+
+# Database
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key
+
+# Trading Configuration
+DEFAULT_TARGET_COIN=SOL
+IS_TESTNET=false
+```
+
+### Bot Configuration
+```typescript
+interface BotCreationRequest {
+  name: string;                    // Human-readable bot name
+  prompt: string;                  // Natural language strategy description
+  targetCoin?: string;            // Asset to monitor (default: SOL)
+  swapConfig: SwapRequest;        // Cross-chain swap parameters
+  strategy?: Partial<TradingStrategy>; // Optional strategy overrides
+  userWallet?: string;            // User's wallet address
+}
+```
+
+## 🔄 API Endpoints
+
+### Bot Management
+- `POST /api/bots` - Create new trading bot
+- `GET /api/bots` - List all bots
+- `GET /api/bots/:id` - Get specific bot details
+- `PUT /api/bots/:id/activate` - Activate bot
+- `PUT /api/bots/:id/deactivate` - Deactivate bot
+- `DELETE /api/bots/:id` - Delete bot
+
+### Trading Operations
+- `POST /api/bots/:id/execute` - Manual trade execution
+- `GET /api/bots/:id/logs` - Execution history
+- `GET /api/bots/:id/performance` - Performance analytics
+- `POST /api/bots/:id/optimize` - Strategy optimization
+
+### Portfolio Management
+- `GET /api/portfolio/:address` - Portfolio overview
+- `GET /api/balances/:address` - Token balances
+- `GET /api/history/:address` - Transaction history
+
+## 🚦 Getting Started
+
+### 1. Installation
+```bash
 npm install
-
-# Copy environment file and configure
-cp env.example .env
 ```
 
-Edit `.env` with your API keys:
-```env
-OPENAI_API_KEY=sk-proj-your-openai-key-here
-VERCEL_TOKEN=your-vercel-token-here
-RELAY_API_KEY=your-relay-api-key-here  # Optional
-IS_TESTNET=false
-```
-
-### 2. Build and Run
-
+### 2. Environment Setup
 ```bash
-# Build the project
-npm run build
+cp env.example .env
+# Edit .env with your API keys
+```
 
-# Start the server
-npm start
+### 3. Database Setup
+```bash
+npm run db:setup
+```
 
-# Or run in development mode
+### 4. Development
+```bash
 npm run dev
 ```
 
-### 3. Test the API
-
+### 5. Production Build
 ```bash
-# Check health
-curl http://localhost:3000/api/health
-
-# Get API info
-curl http://localhost:3000/api/info
-
-# Get example bot configuration
-curl -X POST http://localhost:3000/api/example-bot
+npm run build
+npm start
 ```
 
-## API Endpoints
+## 📊 Monitoring & Analytics
 
-### Bot Management
+### Performance Metrics
+- **Execution Success Rate**: Percentage of successful trades
+- **Average Response Time**: API and WebSocket latency
+- **Portfolio Performance**: ROI and PnL tracking
+- **Error Rates**: Failed transactions and recovery times
 
-#### Create Bot
+### Logging
+- **Structured Logging**: JSON-formatted logs with timestamps
+- **Log Levels**: Debug, Info, Warning, Error, Critical
+- **Correlation IDs**: Track requests across services
+- **Performance Profiling**: Identify bottlenecks and optimize
+
+### Health Checks
+- **Service Status**: Monitor all external dependencies
+- **Connection Health**: WebSocket and API connectivity
+- **Resource Usage**: Memory, CPU, and network metrics
+- **Alert System**: Automated notifications for issues
+
+## 🔒 Security Features
+
+### Authentication & Authorization
+- **JWT Tokens**: Secure API access with expiring tokens
+- **Rate Limiting**: Prevent abuse with request throttling
+- **Input Validation**: Sanitize and validate all inputs
+- **CORS Protection**: Secure cross-origin requests
+
+### Data Protection
+- **Encryption**: All sensitive data encrypted at rest and in transit
+- **Key Management**: Secure storage and rotation of API keys
+- **Audit Logging**: Complete audit trail of all operations
+- **Privacy Controls**: User data protection and GDPR compliance
+
+### Trading Security
+- **Balance Validation**: Verify sufficient funds before trading
+- **Slippage Protection**: Prevent excessive price impact
+- **Transaction Limits**: Configurable maximum trade sizes
+- **Emergency Stops**: Circuit breakers for unusual market conditions
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
 ```bash
-POST /api/bots
-Content-Type: application/json
-
-{
-  "name": "My Trading Bot",
-  "prompt": "Create a bot that buys when price drops below $1.50 and sells when it goes above $2.00",
-  "swapConfig": {
-    "senderAddress": "0x...",
-    "senderPrivateKey": "0x...",
-    "recipientAddress": "0x...",
-    "originSymbol": "USDC",
-    "originBlockchain": "BASE",
-    "destinationSymbol": "ARB",
-    "destinationBlockchain": "ARB",
-    "amount": "10.0",
-    "isTest": false
-  }
-}
+vercel deploy
 ```
 
-#### List All Bots
+### Docker
 ```bash
-GET /api/bots
+docker build -t trading-bot-api .
+docker run -p 3000:3000 trading-bot-api
 ```
 
-#### Get Specific Bot
+### Traditional Server
 ```bash
-GET /api/bots/:botId
+npm run build
+npm run start:prod
 ```
 
-#### Activate Bot
-```bash
-POST /api/bots/:botId/activate
-```
-
-#### Deactivate Bot
-```bash
-POST /api/bots/:botId/deactivate
-```
-
-#### Delete Bot
-```bash
-DELETE /api/bots/:botId
-```
-
-#### Get Bot Logs
-```bash
-GET /api/bots/:botId/logs
-```
-
-#### Optimize Bot Strategy
-```bash
-POST /api/bots/:botId/optimize
-```
-
-### Market Data
-
-#### Get Active Bots
-```bash
-GET /api/bots/status/active
-```
-
-#### Get Price History
-```bash
-GET /api/bots/market/price-history?limit=100
-```
-
-## Trading Strategies
-
-The API supports several trading strategy types:
-
-### 1. Price Threshold
-```javascript
-{
-  "type": "price_threshold",
-  "parameters": {
-    "buyThreshold": 1.50,
-    "sellThreshold": 2.00
-  }
-}
-```
-
-### 2. Price Range
-```javascript
-{
-  "type": "price_range",
-  "parameters": {
-    "minPrice": 1.00,
-    "maxPrice": 2.50
-  }
-}
-```
-
-### 3. Interval-based
-```javascript
-{
-  "type": "interval",
-  "parameters": {
-    "interval": 1800000 // 30 minutes in milliseconds
-  }
-}
-```
-
-### 4. Custom Logic
-```javascript
-{
-  "type": "custom",
-  "parameters": {
-    "customLogic": "Your custom trading logic description"
-  }
-}
-```
-
-## Supported Blockchains
-
-- **BASE**: Base network
-- **ARB**: Arbitrum
-- **ETH**: Ethereum mainnet
-- **OP**: Optimism
-- **POL**: Polygon
-- **BSC**: Binance Smart Chain
-- **AVAX**: Avalanche
-
-## Example Bot Prompts
-
-### DCA Bot
-```
-"Create a dollar-cost averaging bot that buys $10 worth of ARB tokens every hour when the price is below $1.50"
-```
-
-### Momentum Bot
-```
-"Create a momentum bot that buys when price increases by 5% in the last hour and sells when it drops by 3%"
-```
-
-### Range Trading Bot
-```
-"Create a range trading bot that buys USDC with ETH when ETH price is below $3000 and sells when above $3500"
-```
-
-### Volatility Bot
-```
-"Create a volatility bot that executes trades when price volatility exceeds 10% in a 15-minute window"
-```
-
-## Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   User Prompt   │───▶│   OpenAI o3-mini │───▶│  Generated Bot  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                                         │
-┌─────────────────┐    ┌──────────────────┐             │
-│Hyperliquid WS   │───▶│  Price Monitoring│◀────────────┘
-└─────────────────┘    └──────────────────┘
-                                │
-                                ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ NEAR Intents API│◀───│ Trading Execution│───▶│ Vercel Deployment│
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-## Complete Transaction Flow
-
-The Relay integration provides a complete cross-chain swap execution flow:
-
-### 1. Quote Generation
-```javascript
-// Get a quote for cross-chain swap
-const quote = await relayService.getQuote({
-  user: '0x...',
-  originChainId: 8453,      // Base
-  destinationChainId: 42161, // Arbitrum
-  originCurrency: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', // USDC
-  destinationCurrency: '0x0000000000000000000000000000000000000000', // ETH
-  amount: '100000' // 0.1 USDC
-});
-```
-
-### 2. Transaction Execution
-```javascript
-// Execute the swap with real blockchain transactions
-const result = await relayService.executeSwap({
-  senderAddress: '0x...',
-  senderPrivateKey: '0x...',
-  originSymbol: 'USDC',
-  originBlockchain: 'base',
-  destinationSymbol: 'ETH', 
-  destinationBlockchain: 'arbitrum',
-  amount: '0.1'
-});
-```
-
-### 3. Status Monitoring
-```javascript
-// Monitor cross-chain transaction status
-const status = await relayService.getExecutionStatus(requestId);
-// Returns: 'pending', 'success', 'failure'
-```
-
-### 4. Complete Flow Features
-- ✅ **Real Transaction Signing**: Uses ethers.js for secure transaction signing
-- ✅ **Gas Estimation**: Automatic gas limit and price estimation
-- ✅ **Balance Verification**: Checks wallet balance before execution
-- ✅ **Cross-Chain Monitoring**: Tracks transaction status across chains
-- ✅ **Error Handling**: Comprehensive error handling and retry logic
-- ✅ **Multiple Steps**: Handles multi-step cross-chain transactions
-
-## Testing
-
-The API includes comprehensive testing endpoints and utilities:
-
-### Balance Checker
-```bash
-# Check wallet balances across multiple chains
-node check-balances.js
-```
-
-### Relay API Testing
-```bash
-# Test Relay quotes (safe - no transactions)
-node test-relay-simple.js
-
-# Test full transaction flow (dry run)
-node test-relay-execution.js --dry-run
-
-# Execute real transactions (WARNING: costs real money)
-node test-relay-execution.js
-```
-
-### Full Integration Testing
-```bash
-# Test complete bot creation and activation
-node test-full-integration.js
-```
-
-### API Health Testing
-```bash
-# Test health
-curl http://localhost:3000/api/health
-
-# Test with example configuration
-curl -X POST http://localhost:3000/api/example-bot
-
-# Create a test bot (requires valid API keys)
-curl -X POST http://localhost:3000/api/bots \
-  -H "Content-Type: application/json" \
-  -d @test-bot-request.json
-```
-
-## Security Notes
-
-⚠️ **Important Security Considerations:**
-
-1. **Private Keys**: Never hardcode private keys. Use environment variables or secure key management.
-2. **API Keys**: Store all API keys securely and rotate them regularly.
-3. **Test Mode**: Always test with `isTest: true` before live trading.
-4. **Validation**: The API validates all inputs but additional validation is recommended.
-5. **Rate Limits**: Be aware of rate limits on OpenAI, Hyperliquid, and Vercel APIs.
-
-## Deployment to Vercel
-
-The generated bots are automatically deployed to Vercel. Each bot becomes a serverless function that:
-
-1. Monitors price data via WebSocket
-2. Executes trading logic based on generated strategy
-3. Logs all activities and errors
-4. Can be monitored and controlled via the main API
-
-## Error Handling
-
-The API includes comprehensive error handling:
-
-- **OpenAI Errors**: Invalid API keys, rate limits, model issues
-- **WebSocket Errors**: Connection failures, subscription issues
-- **Trading Errors**: Invalid swap configurations, insufficient funds
-- **Deployment Errors**: Vercel deployment failures, configuration issues
-
-## Monitoring and Logs
-
-All bot activities are logged and can be accessed via:
-
-```bash
-# Get execution logs for a specific bot
-GET /api/bots/:botId/logs
-
-# Get price history
-GET /api/bots/market/price-history
-
-# Get active bots status
-GET /api/bots/status/active
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-## License
+## 📝 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+## 🆘 Support
 
-For issues and questions:
-- Check the API health endpoint: `/api/health`
-- Review the API info: `/api/info`  
-- Check server logs for detailed error information
+For support and questions:
+- Create an issue on GitHub
+- Check the documentation
+- Review the troubleshooting guide
+
+---
+
+Built with ❤️ for the DeFi community
